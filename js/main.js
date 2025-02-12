@@ -116,7 +116,7 @@ function findCemeteriesWithinRadius(userLocation, geojsonPath, bufferRadiusMiles
 }
 
 async function generatePoem(prompt) {
-    const apiKey = 'YOUR_GEMINI_API_KEY';
+    const apiKey = 'AIzaSyBMSxlSufZ2a0C6VAK-_YCZ_--HkAQdF94';
     const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateText?key=${apiKey}`, {
         method: 'POST',
         headers: {
