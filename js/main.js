@@ -40,16 +40,7 @@ geolocate.on('geolocate', (position) => {
         .setLngLat(userLocation)
         .addTo(map);
 
-    // Call findCemeteriesWithinRadius after geolocation
-    findCemeteriesWithinRadius(userLocation, 'data/graveyard_memorials.geojson', 5)
-        .then(cemeteries => {
-            displayCemeteriesInMapbox(cemeteries);
-        })
-        .catch(error => {
-            console.error("Error finding cemeteries:", error);
-        });
-});
-
+})
 function getData(data_path) {
     fetch(data_path)
         .then(response => {
@@ -95,62 +86,38 @@ function getData(data_path) {
         });
 }
 
-function findCemeteriesWithinRadius(userLocation, geojsonPath, bufferRadiusMiles) {
-    return fetch(geojsonPath)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(geojsonData => {
-            const buffer = turf.buffer(turf.point(userLocation), bufferRadiusMiles, { units: 'miles' });
-            const cemeteriesWithinBuffer = turf.pointsWithinPolygon(geojsonData, buffer);
-            console.log('Cemeteries within', bufferRadiusMiles, 'miles:', cemeteriesWithinBuffer);
-            return cemeteriesWithinBuffer;
-        })
-        .catch(error => {
-            console.error('Error fetching or processing GeoJSON data:', error);
-            throw error; // Or return empty feature collection
-        });
-}
 
-async function generatePoem(prompt) {
-    const apiKey = 'AIzaSyBMSxlSufZ2a0C6VAK-_YCZ_--HkAQdF94';
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateText?key=${apiKey}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }]
-        })
-    });
+// Global variable to store the poems
+let graveyardPoems = [];
 
-    const data = await response.json();
+// Load the JSON file
+fetch('data/graveyard_poems.json')
+    .then(response => response.json())
+    .then(data => {
+        graveyardPoems = data;
+        console.log(graveyardPoems)
+    })
+    .catch(error => console.error('Error loading poems:', error));
 
-    if (!data || !data.candidates || data.candidates.length === 0) {
-        console.error("Error: Invalid API response", data);
-        return "Oops! No poem was generated.";
+function generatePoem() {
+    if (graveyardPoems.length === 0) {
+        return "Poems not loaded yet.";
     }
-
-    return data.candidates[0].content; // Adjust this based on the actual response format
+    const randomIndex = Math.floor(Math.random() * graveyardPoems.length);
+    return graveyardPoems[randomIndex].poem;
 }
-
 
 map.on('click', 'graveyards-layer', async (e) => {
     const features = e.features[0];
     if (!features) return;
 
-    const coordinates = features.geometry.coordinates[0][0]; // Adjust for multipolygon
+    const coordinates = features.geometry.coordinates[0][0];
     const properties = features.properties;
 
-    const prompt = `Write a short, reflective poem about a graveyard named ${properties.name}.`;
-    const poem = await generatePoem(prompt);
-
+    const poem = generatePoem(); // Get a random poem
     new mapboxgl.Popup()
         .setLngLat(coordinates)
-        .setHTML(`<h3>${properties.name}</h3><p>${poem}</p>`) // Populate with poem
+        .setHTML(`<h3>${properties.name}</h3><p>${poem}</p>`)
         .addTo(map);
 });
 
